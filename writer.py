@@ -3,6 +3,7 @@
 
 import os
 import time
+import datetime
 import urllib
 import wsgiref.handlers
 import markdown
@@ -40,7 +41,7 @@ from django.utils import simplejson
 
 # GLOBALS
 
-PAGE_SIZE = 15
+PAGE_SIZE = 10
 
 class WriterAuthHandler(webapp.RequestHandler):
   def get(self):
@@ -89,7 +90,7 @@ class WriterAuthHandler(webapp.RequestHandler):
     if site_domain_sync is None:
       site_domain_sync = os.environ['HTTP_HOST']
       Datum.set('site_domain_sync', os.environ['HTTP_HOST'])
-    cookies = Cookies(self, max_age = 86400, path = '/')
+    cookies = Cookies(self, max_age = 3600, path = '/')
     s = self.request.get('secret')
     sha1 = hashlib.sha1(s).hexdigest()
     if (sha1 == SECRET):
@@ -193,27 +194,24 @@ class WriterOverviewHandler(webapp.RequestHandler):
     if mentions_web is None:
       try:
         mentions_web = feedparser.parse('http://blogsearch.google.com/blogsearch_feeds?hl=en&q=' + urllib.quote('link:' + Datum.get('site_domain')) + '&ie=utf-8&num=10&output=atom')
-        memcache.add('mentions_web', mentions_web, 600)
+        memcache.add('mentions_web', mentions_web, 3600)
       except:
         mentions_web = None
     if mentions_web is not None:
       template_values['mentions_web'] = mentions_web.entries
-    #mentions_twitter = memcache.get('mentions_twitter')
-    #if mentions_twitter is None:    
-    #  try:
-    #    result = urlfetch.fetch('http://search.twitter.com/search.json?q=' + urllib.quote(q))
-    #    if result.status_code == 200:
-    #      mentions_twitter = simplejson.loads(result.content)
-    #      memcache.add('mentions_twitter', mentions_twitter, 600)
-    #  except:
-    #    mentions_twitter = None
-    #if mentions_twitter is not None:
-    #  if len(mentions_twitter['results']) > 0:
-    #    template_values['mentions_twitter'] = mentions_twitter['results']
+#    mentions_twitter = memcache.get('mentions_twitter')
+#    if mentions_twitter is None:    
+#      try:
+#        result = urlfetch.fetch(TWITTER_API_ROOT + 'search.json?q=' + urllib.quote(q))
+#        if result.status_code == 200:
+#          mentions_twitter = simplejson.loads(result.content)
+#          memcache.add('mentions_twitter', mentions_twitter, 3600)
+#      except:
+#        mentions_twitter = None
+#    if mentions_twitter is not None:
+#      if len(mentions_twitter['results']) > 0:
+#        template_values['mentions_twitter'] = mentions_twitter['results']
     template_values['system_version'] = VERSION
-    if 'message' in self.session:
-      template_values['message'] = self.session['message']
-      del self.session['message']
     path = os.path.join(os.path.dirname(__file__), 'tpl', 'writer', 'overview.html')
     self.response.out.write(template.render(path, template_values))
 
@@ -380,7 +378,6 @@ class WriterSynchronizeHandler(webapp.RequestHandler):
         article.title_url = self.request.get('title_url')
         article.parent_url = self.request.get('parent_url')
         article.content = self.request.get('content')
-        article.article_set = self.request.get('article_set')
         article.format = self.request.get('format')
         if article.format not in CONTENT_FORMATS:
           article.format = site_default_format
@@ -394,8 +391,8 @@ class WriterSynchronizeHandler(webapp.RequestHandler):
           article.is_for_sidebar = True
         else:
           article.is_for_sidebar = False
+        article.last_modified = datetime.datetime.utcnow() + datetime.timedelta(hours=+8)
         article.put()
-        self.session['message'] = '<div style="float: right;"><a href="http://' + site_domain + '/' + article.title_url + '" target="_blank" class="super normal button">View Now</a></div>Changes has been saved into <a href="/writer/edit/' + key + '">' + article.title + '</a>'
       else:
         article = Article()
         article.title = self.request.get('title')
@@ -403,7 +400,6 @@ class WriterSynchronizeHandler(webapp.RequestHandler):
         article.title_url = self.request.get('title_url')
         article.parent_url = self.request.get('parent_url')
         article.content = self.request.get('content')
-        article.article_set = self.request.get('article_set')
         article.format = self.request.get('format')
         if article.format not in CONTENT_FORMATS:
           article.format = site_default_format
@@ -417,8 +413,9 @@ class WriterSynchronizeHandler(webapp.RequestHandler):
           article.is_for_sidebar = True
         else:
           article.is_for_sidebar = False
+        article.last_modified = datetime.datetime.utcnow() + datetime.timedelta(hours=+8)
+        article.created = article.last_modified
         article.put()
-        self.session['message'] = '<div style="float: right;"><a href="http://' + site_domain + '/' + article.title_url + '" target="_blank" class="super normal button">View Now</a></div>New article <a href="/writer/edit/' + str(article.key()) + '">' + article.title + '</a> has been created'
         # Ping Twitter
         twitter_sync = Datum.get('twitter_sync')
         if twitter_sync == 'True' and article.is_page is False:  
@@ -434,12 +431,13 @@ class WriterSynchronizeHandler(webapp.RequestHandler):
       memcache.delete_multi(obsolete)
       Datum.set('site_updated', time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
       # Ping Google Blog Search
-      if site_domain.find('localhost') == -1:
-        try:
-          google_ping = 'http://blogsearch.google.com/ping?name=' + urllib.quote(Datum.get('site_name')) + '&url=http://' + urllib.quote(Datum.get('site_domain')) + '/&changesURL=http://' + urllib.quote(Datum.get('site_domain')) + '/sitemap.xml'
-          result = urlfetch.fetch(google_ping)
-        except:
-          taskqueue.add(url='/writer/ping')
+      try:
+        google_ping = 'http://blogsearch.google.com/ping?name=' + urllib.quote(Datum.get('site_name')) + '&url=http://' + urllib.quote(Datum.get('site_domain')) + '/&changesURL=http://' + urllib.quote(Datum.get('site_domain')) + '/sitemap.xml'
+        result = urlfetch.fetch(google_ping)
+        hub_field = {"hub.mode":"publish","hub.url":"http://imimom0.appspot.com/index.xml"}
+        hub_ping = urlfetch.fetch(url='http://pubsubhubbub.appspot.com/',payload=urllib.urlencode(hub_field),method=urlfetch.POST)
+      except:
+        taskqueue.add(url='/writer/ping')
       self.redirect('/writer/overview?page=' + str(page))
     else:
       article = Article()
@@ -447,7 +445,6 @@ class WriterSynchronizeHandler(webapp.RequestHandler):
       article.title_link = self.request.get('title_link')
       article.title_url = self.request.get('title_url')
       article.content = self.request.get('content')
-      article.article_set = self.request.get('article_set')
       article.format = self.request.get('format')
       if article.format not in CONTENT_FORMATS:
         article.format = site_default_format
@@ -466,7 +463,6 @@ class WriterSynchronizeHandler(webapp.RequestHandler):
         'page_title' : 'New Article',
         'page_reminder': reminder.writer_write,
         'message' : message.content_empty,
-        'user_email' : user.email(),
         'page' : page
       }
       if site_analytics is not None:
@@ -491,12 +487,14 @@ class WriterQuickFindHandler(webapp.RequestHandler):
       self.redirect(self.request.headers['REFERER'])
 
 class WriterPingHandler(webapp.RequestHandler):
-  def get(self):
+  def post(self):
     site_domain = Datum.get('site_domain')
     site_name = Datum.get('site_name')
     try:
       google_ping = 'http://blogsearch.google.com/ping?name=' + urllib.quote(Datum.get('site_name')) + '&url=http://' + urllib.quote(Datum.get('site_domain')) + '/&changesURL=http://' + urllib.quote(Datum.get('site_domain')) + '/index.xml'
       result = urlfetch.fetch(google_ping)
+      hub_field = {"hub.mode":"publish","hub.url":"http://imimom0.appspot.com/index.xml"}
+      hub_ping = urlfetch.fetch(url='http://pubsubhubbub.appspot.com/',payload=urllib.urlencode(hub_field),method=urlfetch.POST)
       if result.status_code == 200:
         self.response.out.write('OK: Google Blog Search Ping: ' + google_ping)
       else:
@@ -514,9 +512,9 @@ def main():
   ('/writer/new', WriterWriteHandler),
   ('/writer/save', WriterSynchronizeHandler),
   ('/writer/ping', WriterPingHandler),
-  ('/writer/update/([0-9a-zA-Z\-\_]+)', WriterSynchronizeHandler),
-  ('/writer/edit/([0-9a-zA-Z\-\_]+)', WriterWriteHandler),
-  ('/writer/remove/([0-9a-zA-Z\-\_]+)', WriterRemoveHandler),
+  ('/writer/update/([0-9a-zA-Z\-]+)', WriterSynchronizeHandler),
+  ('/writer/edit/([0-9a-zA-Z\-]+)', WriterWriteHandler),
+  ('/writer/remove/([0-9a-zA-Z\-]+)', WriterRemoveHandler),
   ('/writer/quick/find', WriterQuickFindHandler)
   ],
                                        debug=True)
