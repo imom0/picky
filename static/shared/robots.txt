@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /writer
+Disallow: /reset
+Sitemap: http://imimom0.appspot.com/sitemap.xml

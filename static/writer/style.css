@@ -134,33 +134,6 @@ h1 {
 	color: #000;
 }
 
-#Explaination {
-	display: inline-block;
-	background-color: #f5f5f5;
-	padding: 15px;
-	font-size: 12px;
-	line-height: 18px;
-	color: #333;
-	max-width: 320px;
-}
-
-#Explaination strong {
-	color: #000;
-	font-size: 14px;
-}
-
-#Explaination big {
-	font-size: 120%;
-	color: #000;
-}
-
-#Composing {
-	float: left;
-	padding-right: 15px;
-	border-right: 2px solid #f0f0f0;
-	display: inline-block;
-}
-
 #Footer {
 	padding: 15px 15px 15px 15px;
 	font-size: 12px;
@@ -496,32 +469,6 @@ a.page:hover {
 
 .tweet_status:focus, .sl:focus, .sls:focus, .ml:focus {
 	border-color: #6c0;
-}
-
-.message {
-	background: -webkit-gradient(
-	    linear,
-	    left bottom,
-	    left top,
-	    color-stop(0.07, rgb(255,245,186)),
-	    color-stop(0.5, rgb(255,250,201)),
-	    color-stop(0.77, rgb(255,245,186))
-	);
-	background: -moz-linear-gradient(
-	    center bottom,
-	    rgb(255,245,186) 7%,
-	    rgb(255,250,201) 50%,
-	    rgb(255,245,186) 77%
-	);
-	font-size: 12px;
-	line-height: 12px;
-	color: #666;
-	padding: 12px 10px 12px 10px;
-	border-top: 1px solid #ffc;
-	border-bottom: 1px solid #ffc;
-	width: 680px;
-	-moz-border-radius: 3px;
-	-webkit-border-radius: 3px;
 }
 
 /* Super Awesome Buttons */

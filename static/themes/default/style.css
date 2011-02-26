@@ -18,7 +18,7 @@ html {
 body {
 	padding: 0px;
 	margin: 0px;
-	font-family: "Helvetica Neue", "Luxi Sans", "DejaVu Sans", Tahoma, "Hiragino Sans GB", STHeiti !important;
+	font-family: "Helvetica Neue", "Luxi Sans", "DejaVu Sans", Tahoma, "STHeiti";
 	background-color: #e2e2e2;
 	min-width: 900px;
 }
@@ -172,40 +172,6 @@ code {
 #Main .content ul, #Main .content ol {
 	padding-left: 18px;
 	margin-left: 0px;
-}
-
-#Main .content img {
-	border: none;
-	padding: 2px;
-	background-color: rgba(255,255,255,0.8);
-	-moz-box-shadow: 0px 1px 3px rgba(0,0,0,0.15);
-	-webkit-box-shadow: 0px 1px 3px rgba(0,0,0,.15);
-	-moz-border-radius: 5px;
-	-webkit-border-radius: 5px;
-	border-radius: 5px;
-}
-
-#Main .content img.plain {
-	border: none;
-	padding: 0px;
-	background-color: transparent;
-	-moz-box-shadow: none;
-	-webkit-box-shadow: none;
-	-moz-border-radius: none;
-	-webkit-border-radius: none;
-	border-radius: none;
-}
-
-#Main .content .permaicon {
-	border: none;
-	padding: 0px 5px 0px 5px;
-	background-color: transparent;
-}
-
-#Main .content .permaicon:hover {
-	border: none;
-	padding: 0px 5px 0px 5px;
-	background-color: rgba(255,255,255,0.8);
 }
 
 #Main .sep {
